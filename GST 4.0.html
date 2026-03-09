@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>GST 2B Reconciliation Tool v4.0</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+body{
+font-family: Arial;
+background: linear-gradient(to right,#1e3c72,#2a5298);
+margin:0;
+padding:0;
+}
+
+.container{
+width:55%;
+margin:60px auto;
+background:white;
+padding:30px;
+border-radius:10px;
+}
+
+button{
+width:100%;
+padding:12px;
+background:#2a5298;
+color:white;
+border:none;
+font-size:15px;
+margin-top:10px;
+cursor:pointer;
+border-radius:6px;
+}
+
+button:hover{
+background:#1e3c72;
+}
+
+.result{
+margin-top:20px;
+background:#f4f4f4;
+padding:15px;
+border-radius:6px;
+}
+
+.footer{
+text-align:center;
+font-size:13px;
+color:rgba(255,255,255,0.85);
+margin-top:15px;
+}
+
+.template-btn{
+background:#4CAF50;
+font-size:13px;
+padding:8px;
+}
+
+.template-btn:hover{
+background:#3e8e41;
+}
+
+.info{
+background:#e7f3ff;
+padding:15px;
+border-radius:8px;
+margin-bottom:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>GST 2B vs Purchase Register Reconciliation</h2>
+
+<div class="info">
+This tool works only with the official template.  
+Download the template, paste your data in the same structure, and upload.
+</div>
+
+<label><b>Upload GSTR 2B File:</b></label>
+<input type="file" id="file2b" accept=".xls,.xlsx">
+<button class="template-btn" onclick="downloadTemplate()">Download GSTR 2B Template</button>
+
+<br><br>
+
+<label><b>Upload Purchase Register:</b></label>
+<input type="file" id="fileBooks" accept=".xls,.xlsx">
+<button class="template-btn" onclick="downloadTemplate()">Download Purchase Register Template</button>
+
+<button onclick="reconcile()">Reconcile & Generate Report</button>
+
+<button onclick="downloadReport()">Download Excel Report</button>
+
+<div class="result" id="result"></div>
+
+</div>
+
+<div class="footer">
+Professionally Developed by Sidhesh Jha
+</div>
+
+<script>
+
+let missingIn2B=[]
+let missingInBooks=[]
+
+const headers=[
+"GSTIN of supplier",
+"Trade/Legal name",
+"Invoice number",
+"Invoice Date",
+"Invoice Value(₹)",
+"Taxable Value (₹)",
+"IGST",
+"CGST",
+"SGST",
+"Unique Code"
+]
+
+function downloadTemplate(){
+
+const ws=XLSX.utils.aoa_to_sheet([headers])
+const wb=XLSX.utils.book_new()
+
+XLSX.utils.book_append_sheet(wb,ws,"Template")
+
+const wbout=XLSX.write(wb,{bookType:"xlsx",type:"array"})
+const blob=new Blob([wbout],{type:"application/octet-stream"})
+
+const link=document.createElement("a")
+link.href=URL.createObjectURL(blob)
+link.download="GST_Reconciliation_Template_v4.xlsx"
+document.body.appendChild(link)
+
+link.click()
+document.body.removeChild(link)
+
+}
+
+function readExcel(file,callback){
+
+const reader=new FileReader()
+
+reader.onload=function(e){
+
+const data=new Uint8Array(e.target.result)
+const workbook=XLSX.read(data,{type:"array"})
+const sheet=workbook.Sheets[workbook.SheetNames[0]]
+const json=XLSX.utils.sheet_to_json(sheet,{defval:""})
+
+callback(json)
+
+}
+
+reader.readAsArrayBuffer(file)
+
+}
+
+function normalize(v){
+
+return String(v).trim().toUpperCase()
+
+}
+
+function toNumber(v){
+
+return Number(v)||0
+
+}
+
+function reconcile(){
+
+const file2b=document.getElementById("file2b").files[0]
+const fileBooks=document.getElementById("fileBooks").files[0]
+
+if(!file2b||!fileBooks){
+
+alert("Please upload both files")
+return
+
+}
+
+readExcel(file2b,function(data2b){
+
+readExcel(fileBooks,function(dataBooks){
+
+const map2b=new Map()
+const mapBooks=new Map()
+
+data2b.forEach(r=>{
+
+const key=normalize(r["Unique Code"])
+if(key) map2b.set(key,r)
+
+})
+
+dataBooks.forEach(r=>{
+
+const key=normalize(r["Unique Code"])
+if(key) mapBooks.set(key,r)
+
+})
+
+missingInBooks=[]
+missingIn2B=[]
+
+map2b.forEach((row,key)=>{
+
+if(!mapBooks.has(key)){
+
+missingInBooks.push(formatRow(row))
+
+}
+
+})
+
+mapBooks.forEach((row,key)=>{
+
+if(!map2b.has(key)){
+
+missingIn2B.push(formatRow(row))
+
+}
+
+})
+
+document.getElementById("result").innerHTML=
+
+"<b>Reconciliation Complete</b><br><br>"+
+"Total 2B Records: "+map2b.size+"<br>"+
+"Total Book Records: "+mapBooks.size+"<br><br>"+
+"<b>Missing in Books:</b> "+missingInBooks.length+"<br>"+
+"<b>Missing in 2B:</b> "+missingIn2B.length
+
+})
+
+})
+
+}
+
+function formatRow(r){
+
+const igst=toNumber(r["IGST"])
+const cgst=toNumber(r["CGST"])
+const sgst=toNumber(r["SGST"])
+
+const totalTax=igst+cgst+sgst
+
+return{
+
+"GSTIN of supplier":r["GSTIN of supplier"],
+"Trade/Legal name":r["Trade/Legal name"],
+"Invoice number":r["Invoice number"],
+"Invoice Date":r["Invoice Date"],
+"Invoice Value(₹)":toNumber(r["Invoice Value(₹)"]),
+"Taxable Value (₹)":toNumber(r["Taxable Value (₹)"]),
+"IGST":igst,
+"CGST":cgst,
+"SGST":sgst,
+"Total Tax":totalTax,
+"Unique Code":r["Unique Code"]
+
+}
+
+}
+
+function downloadReport(){
+
+if(missingIn2B.length===0 && missingInBooks.length===0){
+
+alert("Please run reconciliation first")
+return
+
+}
+
+const wb=XLSX.utils.book_new()
+
+const ws1=XLSX.utils.json_to_sheet(missingInBooks)
+const ws2=XLSX.utils.json_to_sheet(missingIn2B)
+
+XLSX.utils.book_append_sheet(wb,ws1,"Missing in Books")
+XLSX.utils.book_append_sheet(wb,ws2,"Missing in 2B")
+
+const wbout=XLSX.write(wb,{bookType:"xlsx",type:"array"})
+const blob=new Blob([wbout],{type:"application/octet-stream"})
+
+const link=document.createElement("a")
+
+link.href=URL.createObjectURL(blob)
+link.download="GST_Reconciliation_Report_v4.xlsx"
+
+document.body.appendChild(link)
+link.click()
+
+document.body.removeChild(link)
+
+alert("Report Downloaded Successfully!")
+
+}
+
+</script>
+
+</body>
+</html>
