@@ -1,123 +1,124 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>GST 2B Reconciliation Tool</title>
+<title>GST 2B Reconciliation Tool v4.0</title>
 
-```
-<!-- SheetJS Library -->
-<script src="<https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js>"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+document.addEventListener("contextmenu", e => e.preventDefault());
+
+document.onkeydown = function(e) {
+    if (e.keyCode == 123) return false; // F12
+    if (e.ctrlKey && e.shiftKey && e.keyCode == 73) return false; // Ctrl+Shift+I
+    if (e.ctrlKey && e.shiftKey && e.keyCode == 74) return false; // Ctrl+Shift+J
+    if (e.ctrlKey && e.keyCode == 85) return false; // Ctrl+U
+};
+</script>
 
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: linear-gradient(to right, #1e3c72, #2a5298);
-        margin: 0;
-        padding: 0;
-    }
+body{
+font-family: Arial;
+background: linear-gradient(to right,#1e3c72,#2a5298);
+margin:0;
+padding:0;
+}
 
-    .container {
-        width: 55%;
-        margin: 60px auto 20px auto;
-        background: white;
-        padding: 30px;
-        border-radius: 10px;
-    }
+.container{
+width:55%;
+margin:60px auto;
+background:white;
+padding:30px;
+border-radius:10px;
+}
 
-    h2 {
-        margin-top: 0;
-    }
+button{
+width:100%;
+padding:12px;
+background:#2a5298;
+color:white;
+border:none;
+font-size:15px;
+margin-top:10px;
+cursor:pointer;
+border-radius:6px;
+}
 
-    button {
-        width: 100%;
-        padding: 12px;
-        background-color: #2a5298;
-        color: white;
-        border: none;
-        font-size: 15px;
-        margin-top: 10px;
-        cursor: pointer;
-        border-radius: 6px;
-    }
+button:hover{
+background:#1e3c72;
+}
 
-    button:hover {
-        background-color: #1e3c72;
-    }
+.result{
+margin-top:20px;
+background:#f4f4f4;
+padding:15px;
+border-radius:6px;
+}
 
-    .small-btn {
-        background-color: #4CAF50;
-        font-size: 13px;
-        padding: 8px;
-    }
+.footer{
+text-align:center;
+font-size:13px;
+color:rgba(255,255,255,0.85);
+margin-top:15px;
+}
 
-    .small-btn:hover {
-        background-color: #3e8e41;
-    }
+.template-btn{
+background:#4CAF50;
+font-size:13px;
+padding:8px;
+}
 
-    .result {
-        margin-top: 20px;
-        background: #f4f4f4;
-        padding: 15px;
-        border-radius: 6px;
-    }
+.template-btn:hover{
+background:#3e8e41;
+}
 
-    .footer-credit {
-        text-align: center;
-        font-size: 13px;
-        color: rgba(255,255,255,0.85);
-        margin-bottom: 20px;
-    }
-
-    .info-box {
-        background:#e7f3ff;
-        padding:15px;
-        border-radius:8px;
-        margin-bottom:20px;
-    }
+.info{
+background:#e7f3ff;
+padding:15px;
+border-radius:8px;
+margin-bottom:20px;
+}
 </style>
-```
-
 </head>
 
 <body>
 
 <div class="container">
+
 <h2>GST 2B vs Purchase Register Reconciliation</h2>
 
-```
-<div class="info-box">
-    <b>Important:</b>
-    This tool works only with the official template.
-    Download the template, paste your data in the same structure, and upload.
+<div class="info">
+This tool works only with the official template.  
+Download the template, paste your data in the same structure, and upload.
 </div>
 
 <label><b>Upload GSTR 2B File:</b></label>
 <input type="file" id="file2b" accept=".xls,.xlsx">
-<button class="small-btn" onclick="downloadTemplate()">Download GSTR 2B Template</button>
+<button class="template-btn" onclick="downloadTemplate()">Download GSTR 2B Template</button>
 
 <br><br>
 
 <label><b>Upload Purchase Register:</b></label>
 <input type="file" id="fileBooks" accept=".xls,.xlsx">
-<button class="small-btn" onclick="downloadTemplate()">Download Purchase Register Template</button>
+<button class="template-btn" onclick="downloadTemplate()">Download Purchase Register Template</button>
 
 <button onclick="reconcile()">Reconcile & Generate Report</button>
+
 <button onclick="downloadReport()">Download Excel Report</button>
 
 <div class="result" id="result"></div>
-```
 
 </div>
 
-<div class="footer-credit">
+<div class="footer">
 Professionally Developed by Sidhesh Jha
 </div>
 
 <script>
 
-let missingIn2B = [];
-let missingInBooks = [];
+let missingIn2B=[]
+let missingInBooks=[]
 
-const requiredHeaders = [
+const headers=[
 "GSTIN of supplier",
 "Trade/Legal name",
 "Invoice number",
@@ -126,176 +127,188 @@ const requiredHeaders = [
 "Taxable Value (₹)",
 "IGST",
 "CGST",
-"SGST"
-];
+"SGST",
+"Unique Code"
+]
 
-function downloadTemplate() {
-const ws = XLSX.utils.aoa_to_sheet([requiredHeaders]);
-const wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, ws, "Template");
+function downloadTemplate(){
 
-```
-const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-const blob = new Blob([wbout], { type: "application/octet-stream" });
-const link = document.createElement("a");
-link.href = URL.createObjectURL(blob);
-link.download = "GST_Reconciliation_Template.xlsx";
-document.body.appendChild(link);
-link.click();
-document.body.removeChild(link);
-```
+const ws=XLSX.utils.aoa_to_sheet([headers])
+const wb=XLSX.utils.book_new()
 
-}
+XLSX.utils.book_append_sheet(wb,ws,"Template")
 
-function readExcel(file, callback) {
-const reader = new FileReader();
-reader.onload = function(e) {
-const data = new Uint8Array(e.target.result);
-const workbook = XLSX.read(data, { type: 'array' });
-const sheet = workbook.Sheets[workbook.SheetNames[0]];
-const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-callback(jsonData);
-};
-reader.readAsArrayBuffer(file);
-}
+const wbout=XLSX.write(wb,{bookType:"xlsx",type:"array"})
+const blob=new Blob([wbout],{type:"application/octet-stream"})
 
-function validateHeaders(data) {
-const headers = Object.keys(data[0] || {});
-return requiredHeaders.every(h => headers.includes(h));
-}
+const link=document.createElement("a")
+link.href=URL.createObjectURL(blob)
+link.download="GST_Reconciliation_Template_v4.xlsx"
+document.body.appendChild(link)
 
-function normalizeInvoice(inv) {
-return String(inv).trim().toUpperCase();
-}
-
-function toNumber(val) {
-return Number(val) || 0;
-}
-
-function reconcile() {
-
-```
-const file2b = document.getElementById("file2b").files[0];
-const fileBooks = document.getElementById("fileBooks").files[0];
-
-if (!file2b || !fileBooks) {
-    alert("Please upload both files.");
-    return;
-}
-
-readExcel(file2b, function(data2b) {
-    readExcel(fileBooks, function(dataBooks) {
-
-        if (!validateHeaders(data2b) || !validateHeaders(dataBooks)) {
-            alert("Invalid template format. Please use the official template.");
-            return;
-        }
-
-        const map2b = new Map();
-        const mapBooks = new Map();
-
-        data2b.forEach(row => {
-            const key = normalizeInvoice(row["Invoice number"]);
-            if (key) map2b.set(key, row);
-        });
-
-        dataBooks.forEach(row => {
-            const key = normalizeInvoice(row["Invoice number"]);
-            if (key) mapBooks.set(key, row);
-        });
-
-        missingInBooks = [];
-        missingIn2B = [];
-
-        map2b.forEach((value, key) => {
-            if (!mapBooks.has(key)) {
-                missingInBooks.push(formatRow(value));
-            }
-        });
-
-        mapBooks.forEach((value, key) => {
-            if (!map2b.has(key)) {
-                missingIn2B.push(formatRow(value));
-            }
-        });
-
-        document.getElementById("result").innerHTML =
-            "<b>Reconciliation Complete</b><br><br>" +
-            "Total 2B Invoices: " + map2b.size + "<br>" +
-            "Total Book Invoices: " + mapBooks.size + "<br><br>" +
-            "<b>Missing in Books:</b> " + missingInBooks.length + "<br>" +
-            "<b>Missing in 2B:</b> " + missingIn2B.length;
-
-    });
-});
-```
+link.click()
+document.body.removeChild(link)
 
 }
 
-function formatRow(row) {
-const igst = toNumber(row["IGST"]);
-const cgst = toNumber(row["CGST"]);
-const sgst = toNumber(row["SGST"]);
-const totalTax = igst + cgst + sgst;
+function readExcel(file,callback){
 
-```
-return {
-    "GSTIN of supplier": row["GSTIN of supplier"],
-    "Trade/Legal name": row["Trade/Legal name"],
-    "Invoice number": row["Invoice number"],
-    "Invoice Date": row["Invoice Date"],
-    "Invoice Value(₹)": toNumber(row["Invoice Value(₹)"]),
-    "Taxable Value (₹)": toNumber(row["Taxable Value (₹)"]),
-    "IGST": igst,
-    "CGST": cgst,
-    "SGST": sgst,
-    "Total Tax": totalTax
-};
-```
+const reader=new FileReader()
+
+reader.onload=function(e){
+
+const data=new Uint8Array(e.target.result)
+const workbook=XLSX.read(data,{type:"array"})
+const sheet=workbook.Sheets[workbook.SheetNames[0]]
+const json=XLSX.utils.sheet_to_json(sheet,{defval:""})
+
+callback(json)
 
 }
 
-function downloadReport() {
+reader.readAsArrayBuffer(file)
 
-```
-if (missingIn2B.length === 0 && missingInBooks.length === 0) {
-    alert("Please run reconciliation first.");
-    return;
 }
 
-const wb = XLSX.utils.book_new();
+function normalize(v){
 
-const headers = [
-    "GSTIN of supplier",
-    "Trade/Legal name",
-    "Invoice number",
-    "Invoice Date",
-    "Invoice Value(₹)",
-    "Taxable Value (₹)",
-    "IGST",
-    "CGST",
-    "SGST",
-    "Total Tax"
-];
+return String(v).trim().toUpperCase()
 
-const ws1 = XLSX.utils.json_to_sheet(missingInBooks, { header: headers });
-const ws2 = XLSX.utils.json_to_sheet(missingIn2B, { header: headers });
+}
 
-XLSX.utils.book_append_sheet(wb, ws1, "Missing in Books");
-XLSX.utils.book_append_sheet(wb, ws2, "Missing in 2B");
+function toNumber(v){
 
-const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-const blob = new Blob([wbout], { type: "application/octet-stream" });
+return Number(v)||0
 
-const link = document.createElement("a");
-link.href = URL.createObjectURL(blob);
-link.download = "Reconciliation_Report.xlsx";
-document.body.appendChild(link);
-link.click();
-document.body.removeChild(link);
+}
 
-alert("Report Downloaded Successfully!");
-```
+function reconcile(){
+
+const file2b=document.getElementById("file2b").files[0]
+const fileBooks=document.getElementById("fileBooks").files[0]
+
+if(!file2b||!fileBooks){
+
+alert("Please upload both files")
+return
+
+}
+
+readExcel(file2b,function(data2b){
+
+readExcel(fileBooks,function(dataBooks){
+
+const map2b=new Map()
+const mapBooks=new Map()
+
+data2b.forEach(r=>{
+
+const key=normalize(r["Unique Code"])
+if(key) map2b.set(key,r)
+
+})
+
+dataBooks.forEach(r=>{
+
+const key=normalize(r["Unique Code"])
+if(key) mapBooks.set(key,r)
+
+})
+
+missingInBooks=[]
+missingIn2B=[]
+
+map2b.forEach((row,key)=>{
+
+if(!mapBooks.has(key)){
+
+missingInBooks.push(formatRow(row))
+
+}
+
+})
+
+mapBooks.forEach((row,key)=>{
+
+if(!map2b.has(key)){
+
+missingIn2B.push(formatRow(row))
+
+}
+
+})
+
+document.getElementById("result").innerHTML=
+
+"<b>Reconciliation Complete</b><br><br>"+
+"Total 2B Records: "+map2b.size+"<br>"+
+"Total Book Records: "+mapBooks.size+"<br><br>"+
+"<b>Missing in Books:</b> "+missingInBooks.length+"<br>"+
+"<b>Missing in 2B:</b> "+missingIn2B.length
+
+})
+
+})
+
+}
+
+function formatRow(r){
+
+const igst=toNumber(r["IGST"])
+const cgst=toNumber(r["CGST"])
+const sgst=toNumber(r["SGST"])
+
+const totalTax=igst+cgst+sgst
+
+return{
+
+"GSTIN of supplier":r["GSTIN of supplier"],
+"Trade/Legal name":r["Trade/Legal name"],
+"Invoice number":r["Invoice number"],
+"Invoice Date":r["Invoice Date"],
+"Invoice Value(₹)":toNumber(r["Invoice Value(₹)"]),
+"Taxable Value (₹)":toNumber(r["Taxable Value (₹)"]),
+"IGST":igst,
+"CGST":cgst,
+"SGST":sgst,
+"Total Tax":totalTax,
+"Unique Code":r["Unique Code"]
+
+}
+
+}
+
+function downloadReport(){
+
+if(missingIn2B.length===0 && missingInBooks.length===0){
+
+alert("Please run reconciliation first")
+return
+
+}
+
+const wb=XLSX.utils.book_new()
+
+const ws1=XLSX.utils.json_to_sheet(missingInBooks)
+const ws2=XLSX.utils.json_to_sheet(missingIn2B)
+
+XLSX.utils.book_append_sheet(wb,ws1,"Missing in Books")
+XLSX.utils.book_append_sheet(wb,ws2,"Missing in 2B")
+
+const wbout=XLSX.write(wb,{bookType:"xlsx",type:"array"})
+const blob=new Blob([wbout],{type:"application/octet-stream"})
+
+const link=document.createElement("a")
+
+link.href=URL.createObjectURL(blob)
+link.download="GST_Reconciliation_Report_v4.xlsx"
+
+document.body.appendChild(link)
+link.click()
+
+document.body.removeChild(link)
+
+alert("Report Downloaded Successfully!")
 
 }
 
